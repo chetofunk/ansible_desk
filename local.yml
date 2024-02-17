@@ -13,13 +13,13 @@
         - python3-psutil
 
   - name: copy wallpaper file
-      copy: 
-        src: dev/files/0002.jpg
-        dest: /usr/share/bacground/ansible-wallpaper.png
-        owner: root
-        group: root
+    copy: 
+      src: files/0002.jpg
+      dest: /usr/share/bacground/ansible-wallpaper.png
+      owner: root
+      group: root
 
-  - name set wallpaper
+  - name: set wallpaper
       become_user: popos-test
       dconf: 
         key: "/org/gnome/desktop/background/picture-uri"

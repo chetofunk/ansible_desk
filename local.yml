@@ -14,7 +14,7 @@
 
   - name: copy wallpaper file
       copy: 
-        source: files/0002.jpg
+        src: files/0002.jpg
         dest: /usr/share/bacground/ansible-wallpaper.png
         owner: root
         group: root

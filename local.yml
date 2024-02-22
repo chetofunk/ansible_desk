@@ -1,41 +1,66 @@
----
-- hosts: localhost
-  connection: local
+# tasks to complete before running roles
+- hosts: all
+  tags: always
   become: true
+  pre_tasks:
+    - name: pre-run | update package cache (arch)
+      tags: always
+      pacman: update_cache=yes
+      changed_when: False
+      when: ansible_distribution == "Archlinux"
 
-  tasks: 
-  -  name: install packages
-     package:
-      name: 
-        - htop
-        - tmux
-        - vim-nox
-        - python3-psutil
+    - name: pre-run | update package cache (debian, etc)
+      tags: always
+      apt: update_cache=yes
+      changed_when: False
+      when: ansible_distribution in ["Debian", "Ubuntu"]
 
-  - name: copy wallpaper file
-    copy: 
-      src: files/0011.jpg
-      dest: /usr/share/backgrounds/pop/ansible-wallpaper2.jpg
-      owner: root
-      group: root
+# run roles
+- hosts: all
+  tags: base
+  become: true
+  roles:
+    - base
 
-  - name: set wallpaper
-    become_user: popos-test
-    dconf: 
-      key: "/org/gnome/desktop/background/picture-uri"
-      value: "'file:///usr/share/backgrounds/ansible-wallpaper2.png'"
+- hosts: workstation
+  tags: workstation
+  become: true
+  roles:
+    - workstation
 
-  - name: set wallpaper position
-    become_user: popos-test
-    dconf:
-      key: "/org/gnome/desktop/background/picture-options"
-      value: "'zoom'"
+- hosts: server
+  tags: server
+  become: true
+  roles:
+    - server
 
-  - name: coy .bashrc file
-    copy: 
-      src: files/bashrc
-      dest: /home/popos-test/.bashrc
-      owner: popos-test
-      group: popos-test
+# end of run cleanup and reporting
+- hosts: all
+  become: true
+  tasks:
+  - name: cleanup package cache (debian and ubuntu)
+    tags: always
+    apt:
+      autoclean: yes
+    changed_when: false
+    when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
 
+  - name: autoremove orphan packages (debian and ubuntu)
+    tags: always
+    apt:
+      autoremove: yes
+      purge: yes
+    when: ansible_distribution in ["Debian", "Pop!_OS", "Ubuntu"]
 
+  - name: send completion alert
+    include_tasks: playbooks/send_completion_alert.yml
+    tags: always
+    when:
+      - task_failed is not defined
+
+  - name: send failure alert
+    include_tasks: playbooks/send_failure_alert.yml
+    tags: always
+    when:
+      - task_failed is defined
+      - task_failed == true
